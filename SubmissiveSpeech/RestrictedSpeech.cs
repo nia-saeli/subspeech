@@ -1,21 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.Swift;
 using System.Text;
 using System.Text.RegularExpressions;
-using Lumina.Excel.Sheets;
 using Serilog;
 using SubmissiveSpeech;
 
-namespace RestrictedSpeech {
+namespace RestrictedSpeech
+{
     public class SubmissiveSpeech
     {
         const string SENTENCE_REGEX = @"([^.]*[^.]*[\.\?\!])([^.]*[^.]*)$";
         const string WORD_REGEX = @"([^a-zA-Z0-9]*)([a-zA-Z0-9\-\']*)([^a-zA-Z0-9]*)";
-// This emoji should support the following basic text emojis
+        // This emoji should support the following basic text emojis
         const string EMOJI_REGEX = @"^[:;cDxX><\-\,)CP][:;><\-3)CWwdpP]*[:;cDxX><\-\,3)CWwdpP]$";
-        
+
         Configuration configuration;
         Regex sentence_regex;
         Regex word_regex;
@@ -28,17 +27,17 @@ namespace RestrictedSpeech {
             sentence_regex = new Regex(SENTENCE_REGEX);
             word_regex = new Regex(WORD_REGEX);
             emoji_regex = new Regex(EMOJI_REGEX);
-            compliance_regex = new Regex(configuration.CompelledSpeech);
+            compliance_regex = new Regex(configuration.CurrentProfile.CompelledSpeech);
         }
         public bool SetToSpeakSubmissively()
         {
             return
-                configuration.ForcedSpeechEnabled ||
-                configuration.UtterancesEnabled ||
-                configuration.ForcedPronounsEnabled ||
-                configuration.StutterEnabled ||
-                configuration.SentenceStartEnabled ||
-                configuration.SentenceEndingEnabled;
+                configuration.CurrentProfile.ForcedSpeechEnabled ||
+                configuration.CurrentProfile.UtterancesEnabled ||
+                configuration.CurrentProfile.PronounCorrectionEnabled ||
+                configuration.CurrentProfile.StutterEnabled ||
+                configuration.CurrentProfile.SentenceStartEnabled ||
+                configuration.CurrentProfile.SentenceEndingEnabled;
         }
         public string SubmissivelySpeak(String input)
         {
@@ -46,9 +45,9 @@ namespace RestrictedSpeech {
 
             StringBuilder output = new StringBuilder();
             Random rand = new Random();
-            
+
             List<string> words = input.Split(" ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-            int ticks = (int)Math.Ceiling((double)words.Count * configuration.UtteranceMaxPortionOfSpeech);
+            int ticks = (int)Math.Ceiling((double)words.Count * configuration.CurrentProfile.UtteranceMaxPortionOfSpeech);
             bool to_replace = true;
             Log.Debug($"Looping over words with {words.Count}");
             for (int i = 0; i < words.Count; i++)
@@ -90,17 +89,17 @@ namespace RestrictedSpeech {
                 output.Append(' ');
             }
             var final = output.ToString();
-            if (configuration.SentenceStartEnabled)
+            if (configuration.CurrentProfile.SentenceStartEnabled)
             {
                 final = SentenceStart(final);
             }
-            if (configuration.SentenceEndingEnabled)
+            if (configuration.CurrentProfile.SentenceEndingEnabled)
             {
                 final = SentenceEnding(final);
             }
             return final;
         }
-        
+
         private bool isEmoji(string full_word)
         {
             return emoji_regex.IsMatch(full_word);
@@ -111,7 +110,8 @@ namespace RestrictedSpeech {
         /// </summary>
         /// <param name="full_word"></param>
         /// <returns>tuple that indicates a prefix punctuation, the word content, the postfix punctuation</returns>
-        private (string, string, string) handlePunctuation (string full_word) {
+        private (string, string, string) handlePunctuation(string full_word)
+        {
             var captures = word_regex.Match(full_word).Groups;
             var prefix = captures[1].ToString();
             var word = captures[2].ToString();
@@ -125,41 +125,41 @@ namespace RestrictedSpeech {
             // By default it will be empty
             postfix_punctuation = "";
             // Forced speech trumps all other speech and returns immediately, no further processing required.
-            if (configuration.ForcedSpeechEnabled)
+            if (configuration.CurrentProfile.ForcedSpeechEnabled)
             {
                 Log.Debug($"Process {word} using forced speech and early returning");
-                int index = rand.Next(configuration.ForcedWords.Count);
-                return configuration.ForcedWords[index];
+                int index = rand.Next(configuration.CurrentProfile.ForcedWords.Count);
+                return configuration.CurrentProfile.ForcedWords[index];
             }
             // If this is found in a pronouns list, change it.
-            if (configuration.ForcedPronounsEnabled)
+            if (configuration.CurrentProfile.PronounCorrectionEnabled)
             {
                 var key = word.ToLower();
-                if (configuration.PronounsReplacements.ContainsKey(key))
+                if (configuration.CurrentProfile.PronounsReplacements.ContainsKey(key))
                 {
                     Log.Debug($"Process {word} using forced pronouns");
-                    word = configuration.PronounsReplacements[key];
+                    word = configuration.CurrentProfile.PronounsReplacements[key];
                 }
             }
             // Roll for stuttering. TODO: Make configurable.
-                if (configuration.StutterEnabled && rand.Next(100) < configuration.StutterChance)
-                {
-                    Log.Debug($"Process {word} and making it stutter");
-                    string stutter = "";
-                int max_stutters = rand.Next(configuration.MaxStutterSeverity);
-                    for (int i = 0; i < 1 + max_stutters; i++)
+            if (configuration.CurrentProfile.StutterEnabled && rand.Next(100) < configuration.CurrentProfile.StutterChance)
+            {
+                Log.Debug($"Process {word} and making it stutter");
+                string stutter = "";
+                int max_stutters = rand.Next(configuration.CurrentProfile.MaxStutterSeverity);
+                for (int i = 0; i < 1 + max_stutters; i++)
                 {
                     stutter += word.First() + "-";
                 }
-                    // Randomize it with a slightly more drammatic stutter
-                    rand.Next(configuration.MaxStutterSeverity);
+                // Randomize it with a slightly more drammatic stutter
+                rand.Next(configuration.CurrentProfile.MaxStutterSeverity);
 
-                    word = stutter + word;
-                }
+                word = stutter + word;
+            }
             // Finally if there is an utterance required, add it.
             // The number of ticks here is to respect the maximum portion of a sentence
             // (to prevent RNG from making people have a spasm of utterances unless they want to.)
-            if (configuration.UtterancesEnabled && ticks > 0)
+            if (configuration.CurrentProfile.UtterancesEnabled && ticks > 0)
             {
                 Log.Debug($"Process {word} verbal ticks");
 
@@ -170,15 +170,15 @@ namespace RestrictedSpeech {
                 // Note: For simplicity, the roll calculation is measuring less than for the chance .
                 var bias = total_words / (1 + word_index);
                 var roll = rand.NextDouble() * bias;
-                if (configuration.Utterances.Count == 0)
+                if (configuration.CurrentProfile.Utterances.Count == 0)
                 {
-                    Log.Debug($"No verbal ticks found, this should not be possible to set, so there is an error in your configuration.");
+                    Log.Debug($"No verbal ticks found, this should not be possible to set, so there is an error in your configuration.CurrentProfile.");
                 }
-                else if (roll < configuration.UtteranceChance)
+                else if (roll < configuration.CurrentProfile.UtteranceChance)
                 {
                     ticks -= 1;
-                    int index = rand.Next(configuration.Utterances.Count);
-                    string tick = configuration.Utterances[index];
+                    int index = rand.Next(configuration.CurrentProfile.Utterances.Count);
+                    string tick = configuration.CurrentProfile.Utterances[index];
                     word = word + ", " + tick;
                     postfix_punctuation = ",";
 
@@ -187,7 +187,8 @@ namespace RestrictedSpeech {
             return word;
         }
 
-        public string Pronouns(string input) {
+        public string Pronouns(string input)
+        {
             StringBuilder output = new StringBuilder();
             // This should just be a simple key lookup replacement as the definition for this should be kept within a dictionary.
             foreach (string full_word in input.Split(' ', StringSplitOptions.RemoveEmptyEntries))
@@ -200,9 +201,9 @@ namespace RestrictedSpeech {
                 (string pre, string word, string post) = handlePunctuation(full_word);
 
                 output.Append(pre);
-                if (configuration.PronounsReplacements.ContainsKey(word))
+                if (configuration.CurrentProfile.PronounsReplacements.ContainsKey(word))
                 {
-                    output.Append(configuration.PronounsReplacements[word]);
+                    output.Append(configuration.CurrentProfile.PronounsReplacements[word]);
                 }
                 else
                 {
@@ -213,12 +214,12 @@ namespace RestrictedSpeech {
             }
             return output.ToString().TrimEnd();
         }
-        
+
         public string SentenceStart(string input)
         {
-            if (configuration.SentenceStartEnabled)
+            if (configuration.CurrentProfile.SentenceStartEnabled)
             {
-                return configuration.SentenceStarts + input;
+                return configuration.CurrentProfile.SentenceStarts + input;
             }
             else
             {
@@ -227,170 +228,14 @@ namespace RestrictedSpeech {
         }
         public string SentenceEnding(string input)
         {
-            if (configuration.SentenceEndingEnabled)
+            if (configuration.CurrentProfile.SentenceEndingEnabled)
             {
-                return input + configuration.SentenceEndings;
+                return input + configuration.CurrentProfile.SentenceEndings;
             }
             else
             {
                 return input;
             }
-        }
-    }
-    public class Speaker {
-        const string WORD_REGEX = @"([^a-zA-Z0-9]*)([a-zA-Z0-9\-\']*)([^a-zA-Z0-9]*)";
-// This emoji should support the following basic text emojis
-        const string EMOJI_REGEX = @"^[:;cDxX><\-\,)CP][:;><\-3)CWwdpP]*[:;cDxX><\-\,3)CWwdpP]$";
-        
-        
-        Configuration configuration;
-        Regex wordRegex;
-        Regex emojiRegex;
-        Regex complianceRegex;
-        public Speaker(Configuration configuration) {
-            this.configuration = configuration;
-
-            wordRegex = new Regex(WORD_REGEX);
-            emojiRegex = new Regex(EMOJI_REGEX);
-            complianceRegex = new Regex(this.configuration.CompelledSpeech);
-        }
-
-        private bool isEmoji(string full_word) {
-            return emojiRegex.IsMatch(full_word);
-        }
-
-        /// <summary>
-        /// Handles the punctuation of individual word so that things like *word, are handled properly.
-        /// </summary>
-        /// <param name="full_word"></param>
-        /// <returns>tuple that indicates a prefix punctuation, the word content, the postfix punctuation</returns>
-        private (string, string, string) handlePunctuation (string full_word) {
-            var captures = wordRegex.Match(full_word).Groups;
-            var prefix = captures[1].ToString();
-            var word = captures[2].ToString();
-            var postfix = captures[3].ToString();
-            return (prefix, word, postfix);
-        }
-        // Forced speech will replace all words with one of the words in the "forced_speech" list
-        // All phrases are case insensitive
-        public string ForcedSpeech(string input) {
-            StringBuilder output = new StringBuilder();
-            Random rand = new Random();
-            bool to_force = true;
-            foreach(string full_word in input.Split(" ", StringSplitOptions.RemoveEmptyEntries)) {
-                if (isEmoji(full_word)) {
-                    output.Append(full_word);
-                    output.Append(' ');
-                    continue;
-                }
-                (string prefix, string word, string postfix) = handlePunctuation(full_word);
-                if (prefix != "") {
-                    if (prefix.Contains('*'))
-                        to_force = false;
-                    output.Append(prefix);
-                }
-                if (to_force) {
-                    int index = rand.Next(configuration.ForcedWords.Count);
-                    output.Append(configuration.ForcedWords[index]);
-                } else {
-                    output.Append(word);
-                }
-                if (postfix != "") {
-                    if (postfix.Contains('*'))
-                        to_force = true;
-                    output.Append(postfix);
-                }
-                output.Append(' ');
-            }
-            return output.ToString();
-        }
-
-        // Locked speech will delete any words that do not match the "allowed words/phrases" list
-        // All phrases are case insensitive
-        public string LockedSpeech(string input) {
-            StringBuilder output = new StringBuilder();
-            bool lockspeech = true;
-            if (!complianceRegex.ToString().Equals(configuration.CompelledSpeech)) {
-                complianceRegex = new Regex(configuration.CompelledSpeech);
-            }
-            foreach (string full_word in input.Split(" ", StringSplitOptions.RemoveEmptyEntries)) {
-                if (isEmoji(full_word)) {
-                    output.Append(full_word);
-                    output.Append(' ');
-                    continue;
-                }
-                (string prefix, string word, string postfix) = handlePunctuation(full_word);
-                if (prefix.Contains('*'))
-                    lockspeech = false;
-
-                if (lockspeech && configuration.AllowedWords.Contains(word.ToLower())) {
-                    if (prefix != "") {
-                        if (prefix.Contains('*'))
-                            lockspeech = false;
-                        output.Append(prefix);
-                    }
-                    output.Append(word);
-                    if (postfix != "") {
-                        output.Append(postfix);
-                    }
-                    output.Append(' ');
-                }
-
-                if (prefix.Contains('*'))
-                    lockspeech = true;
-            }
-            return output.ToString();
-        }
-
-        /// <summary>
-        /// Utterances are phrases randomly distributed through a sentence.
-        /// 
-        /// Note: The maximum number of utterances is controlled by Configuruation.UtteranceChance, but to prevent excessive utterances 
-        /// </summary>
-        /// <param name="input">the input string from chat</param>
-        /// <returns>The chat string to be sent to the server</returns>
-        public string Utterances(string input) {
-            Random rand = new Random();
-            StringBuilder output = new StringBuilder();
-            List<string> words = input.Split(" ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-            bool to_utter = true;
-            int utterances = (int)Math.Ceiling((double)words.Count * configuration.UtteranceMaxPortionOfSpeech);
-            for (int i = 0; i<words.Count; i++) {
-                if (isEmoji(words[i])) {
-                    output.Append(words[i]);
-                    output.Append(' ');
-                    continue;
-                }
-
-                (string prefix, string word, string postfix) = handlePunctuation(words[i]);
-                if (prefix!= "") {
-                    if (prefix.Contains('*'))
-                        to_utter = false;
-                    output.Append(prefix);
-                }
-                // This controls the RNG aspect for this
-                // Utterances is to control the quantity of the utterances
-                // The roll determines the chance.
-                var roll = rand.NextDouble();
-                if (to_utter && utterances > 0 && roll < configuration.UtteranceChance) {
-                    utterances -= 1;
-                    // output.Remove(output.Length-1, 1);
-                    if (i > 0) {
-                        output.Remove(output.Length-1, 1);
-                        output.Append(", ");
-                    }
-                    int index = rand.Next(configuration.Utterances.Count);
-                    output.Append(configuration.Utterances[index]);
-                    output.Append(", ");
-                }
-                output.Append(word);
-                if (postfix != "") {
-                    output.Append(postfix);
-                }
-                output.Append(' ');
-            }
-
-            return output.ToString();
         }
     }
 }

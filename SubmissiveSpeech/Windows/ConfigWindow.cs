@@ -1,13 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
-using Serilog.Debugging;
 
 namespace SubmissiveSpeech.Windows;
 
@@ -31,29 +29,27 @@ public class ConfigWindow : Window, IDisposable
 
     public bool previewForcedPronounEnabled = false;
 
-    // public Dictionary<string, string> PronounsReplacements = new Dictionary<string, string>() { };
-
     private bool configDirty = false;
     private readonly CancellationTokenSource cts = new();
 
     private void GetLastConfig()
     {
-        previewStutterEnabled = configuration.StutterEnabled;
-        previewStutterChance = configuration.StutterChance;
-        previewStutterSeverity = configuration.MaxStutterSeverity;
+        previewStutterEnabled = configuration.CurrentProfile.StutterEnabled;
+        previewStutterChance = configuration.CurrentProfile.StutterChance;
+        previewStutterSeverity = configuration.CurrentProfile.MaxStutterSeverity;
 
-        previewForcedWords = string.Join(' ', configuration.ForcedWords);
-        previewTicks = string.Join(' ', configuration.Utterances);
-        previewTickChance = (int)(configuration.UtteranceChance * 100f);
-        previewMaxTicks = (int)(configuration.UtteranceMaxPortionOfSpeech * 100f);
+        previewForcedWords = string.Join(' ', configuration.CurrentProfile.ForcedWords);
+        previewTicks = string.Join(' ', configuration.CurrentProfile.Utterances);
+        previewTickChance = (int)(configuration.CurrentProfile.UtteranceChance * 100f);
+        previewMaxTicks = (int)(configuration.CurrentProfile.UtteranceMaxPortionOfSpeech * 100f);
 
-        previewSentenceStarts = configuration.SentenceStarts.Trim();
-        previewSentenceEndings = configuration.SentenceEndings.Trim();
+        previewSentenceStarts = configuration.CurrentProfile.SentenceStarts.Trim();
+        previewSentenceEndings = configuration.CurrentProfile.SentenceEndings.Trim();
 
-        previewTickChance = (int)(configuration.UtteranceChance * 100f);
-        previewMaxTicks = (int)(configuration.UtteranceMaxPortionOfSpeech * 100f);
+        previewTickChance = (int)(configuration.CurrentProfile.UtteranceChance * 100f);
+        previewMaxTicks = (int)(configuration.CurrentProfile.UtteranceMaxPortionOfSpeech * 100f);
 
-        previewForcedPronounEnabled = configuration.ForcedPronounsEnabled;
+        previewForcedPronounEnabled = configuration.CurrentProfile.PronounCorrectionEnabled;
     }
 
     // We give this window a constant ID using ###
@@ -94,7 +90,8 @@ public class ConfigWindow : Window, IDisposable
 
     public void Dispose() { }
 
-    private void InitTextFields() {
+    private void InitTextFields()
+    {
 
     }
 
@@ -102,30 +99,33 @@ public class ConfigWindow : Window, IDisposable
     {
         // var SubmissiveSpeech = Configuration.LockedSpeech;
         ImGui.Checkbox("Stutter Speech Enabled", ref previewStutterEnabled);
-        if (ImGui.InputInt("Stutter Chance", ref previewStutterChance, 1, 10)) {
+        if (ImGui.InputInt("Stutter Chance", ref previewStutterChance, 1, 10))
+        {
             Math.Clamp(previewStutterChance, 1, 100);
         }
-        if (ImGui.InputInt("Max Stutter Severity", ref previewStutterSeverity, 1, 10)) {
+        if (ImGui.InputInt("Max Stutter Severity", ref previewStutterSeverity, 1, 10))
+        {
             Math.Clamp(previewStutterSeverity, 1, 100);
         }
         var width = ImGui.GetWindowWidth() - ImGui.GetCursorPosX() - ImGui.GetStyle().WindowPadding.X;
-        var ForcedSpeech = configuration.ForcedSpeechEnabled;
+        var ForcedSpeech = configuration.CurrentProfile.ForcedSpeechEnabled;
         if (ImGui.Checkbox("Forced Speech Enabled", ref ForcedSpeech))
         {
-            configuration.ForcedSpeechEnabled = ForcedSpeech;
+            configuration.CurrentProfile.ForcedSpeechEnabled = ForcedSpeech;
         }
         ImGui.InputTextMultiline("Forced Speech Word List", ref previewForcedWords, 4000, new Vector2(width, 40));
         ImGui.Separator();
 
         ImGui.Checkbox("Forced Pronouns", ref previewForcedPronounEnabled);
 
-        if (ImGui.BeginTable("pronoun_table", 3, ImGuiTableFlags.SizingStretchSame)) {
+        if (ImGui.BeginTable("pronoun_table", 3, ImGuiTableFlags.SizingStretchSame))
+        {
             ImGui.TableSetupColumn("Pronoun", ImGuiTableColumnFlags.NoHide);
             ImGui.TableSetupColumn("What to Replace With", ImGuiTableColumnFlags.NoHide);
             ImGui.TableSetupColumn("Delete", ImGuiTableColumnFlags.NoHide);
             ImGui.TableHeadersRow();
 
-            foreach ((string k, string v) in configuration.PronounsReplacements)
+            foreach ((string k, string v) in configuration.CurrentProfile.PronounsReplacements)
             {
                 var old_value = v;
                 ImGui.TableNextColumn();
@@ -133,15 +133,15 @@ public class ConfigWindow : Window, IDisposable
                 ImGui.TableNextColumn();
                 if (ImGui.InputText($"##{k}", ref old_value, 20))
                 {
-                    configuration.PronounsReplacements[k] = old_value;
+                    configuration.CurrentProfile.PronounsReplacements[k] = old_value;
                 }
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"x##delete{k}")) {
-                    configuration.PronounsReplacements.Remove(k);
+                if (ImGui.Button($"x##delete{k}"))
+                {
+                    configuration.CurrentProfile.PronounsReplacements.Remove(k);
                 }
             }
 
-           
             ImGui.TableNextColumn();
             ImGui.InputText("##inputkey", ref previewNewPronoun, 20);
             ImGui.TableNextColumn();
@@ -149,7 +149,7 @@ public class ConfigWindow : Window, IDisposable
             ImGui.TableNextColumn();
             if (ImGui.Button("+##new"))
             {
-                configuration.PronounsReplacements.Add(previewNewPronoun, previewNewReplacement);
+                configuration.CurrentProfile.PronounsReplacements.Add(previewNewPronoun, previewNewReplacement);
                 previewNewPronoun = "";
                 previewNewReplacement = "";
             }
@@ -158,29 +158,29 @@ public class ConfigWindow : Window, IDisposable
 
         ImGui.Separator();
 
-        var SentenceStartEnabled = configuration.SentenceStartEnabled;
+        var SentenceStartEnabled = configuration.CurrentProfile.SentenceStartEnabled;
         if (ImGui.Checkbox("Sentence Starts Enabled", ref SentenceStartEnabled))
         {
-            configuration.SentenceStartEnabled = SentenceStartEnabled;
+            configuration.CurrentProfile.SentenceStartEnabled = SentenceStartEnabled;
         }
         ImGui.InputTextMultiline("Sentence Starts Word List", ref previewSentenceStarts, 4000, new Vector2(width, 40));
         ImGui.Separator();
 
-        var SentenceEndingEnabled = configuration.SentenceEndingEnabled;
+        var SentenceEndingEnabled = configuration.CurrentProfile.SentenceEndingEnabled;
         if (ImGui.Checkbox("Sentence Endings Enabled", ref SentenceEndingEnabled))
         {
-            configuration.SentenceEndingEnabled = SentenceEndingEnabled;
+            configuration.CurrentProfile.SentenceEndingEnabled = SentenceEndingEnabled;
         }
         ImGui.InputTextMultiline("Sentence Endings Word List", ref previewSentenceEndings, 4000, new Vector2(width, 40));
 
 
         ImGui.Separator();
-        var Utterances = configuration.UtterancesEnabled;
+        var Utterances = configuration.CurrentProfile.UtterancesEnabled;
         if (ImGui.Checkbox("Verbal Ticks Enabled", ref Utterances))
         {
-            if (configuration.Utterances.Count > 0)
+            if (configuration.CurrentProfile.Utterances.Count > 0)
             {
-                configuration.UtterancesEnabled = Utterances;
+                configuration.CurrentProfile.UtterancesEnabled = Utterances;
             }
             else
             {
@@ -189,32 +189,34 @@ public class ConfigWindow : Window, IDisposable
         }
 
 
-        if(ImGui.InputInt("Chance for a Tick", ref previewTickChance, 1, 10, ImGuiInputTextFlags.None) ) {
+        if (ImGui.InputInt("Chance for a Tick", ref previewTickChance, 1, 10, ImGuiInputTextFlags.None))
+        {
             Math.Clamp(previewTickChance, 0, 100);
         }
-        if(ImGui.InputInt("Max % of Speech that can be a tick", ref previewMaxTicks, 1, 10, ImGuiInputTextFlags.None) ) {
+        if (ImGui.InputInt("Max % of Speech that can be a tick", ref previewMaxTicks, 1, 10, ImGuiInputTextFlags.None))
+        {
             Math.Clamp(previewMaxTicks, 0, 100);
         }
 
         ImGui.InputTextMultiline("Utterances", ref previewTicks, 4000, new Vector2(width, 40));
-        
+
         ImGui.Separator();
         if (ImGui.Button("Save Config"))
         {
-            configuration.ForcedWords = previewForcedWords.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-            configuration.Utterances = previewTicks.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-            
-            configuration.UtteranceChance = (float)(previewTickChance / 100f);
-            configuration.UtteranceMaxPortionOfSpeech = (float)(previewMaxTicks / 100f);
+            configuration.CurrentProfile.ForcedWords = previewForcedWords.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+            configuration.CurrentProfile.Utterances = previewTicks.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
-            configuration.SentenceStarts = previewSentenceStarts.Trim();
-            configuration.SentenceEndings = previewSentenceEndings.Trim();
+            configuration.CurrentProfile.UtteranceChance = (float)(previewTickChance / 100f);
+            configuration.CurrentProfile.UtteranceMaxPortionOfSpeech = (float)(previewMaxTicks / 100f);
 
-            configuration.StutterEnabled = previewStutterEnabled;
-            configuration.StutterChance = previewStutterChance;
-            configuration.MaxStutterSeverity = previewStutterSeverity;
+            configuration.CurrentProfile.SentenceStarts = previewSentenceStarts.Trim();
+            configuration.CurrentProfile.SentenceEndings = previewSentenceEndings.Trim();
 
-            configuration.ForcedPronounsEnabled = previewForcedPronounEnabled;
+            configuration.CurrentProfile.StutterEnabled = previewStutterEnabled;
+            configuration.CurrentProfile.StutterChance = previewStutterChance;
+            configuration.CurrentProfile.MaxStutterSeverity = previewStutterSeverity;
+
+            configuration.CurrentProfile.PronounCorrectionEnabled = previewForcedPronounEnabled;
 
             configDirty = true;
         }

@@ -1,23 +1,20 @@
-﻿using Dalamud.Game.Command;
+using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using System.IO;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using SubmissiveSpeech.Windows;
-using System.Net.NetworkInformation;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using RestrictedSpeech;
 using System;
 using Dalamud.Utility.Signatures;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.System.String;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Dalamud.Utility;
 using Dalamud.Memory;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace SubmissiveSpeech;
 
@@ -44,10 +41,61 @@ public sealed class Plugin : IDalamudPlugin
     [Signature("E8 ?? ?? ?? ?? FE 86 ?? ?? ?? ?? C7 86 ?? ?? ?? ?? ?? ?? ?? ??", DetourName = nameof(ProcessChatInputDetour), Fallibility = Fallibility.Auto)]
     private Hook<ProcessChatInputDelegate> ProcessChatInputHook { get; set; } = null!;
 
+    private readonly List<string> channelaliases = new List<string>()
+    {
+        "/t",
+        "/tell",
+        "/s",
+        "/say",
+        "/p",
+        "/party",
+        "/a",
+        "/alliance",
+        "/y",
+        "/yell",
+        "/sh",
+        "/shout",
+        "/fc",
+        "/freecompany",
+        "/n",
+        "/novice",
+        "/cwl1",
+        "/cwlinkshell1",
+        "/cwl2",
+        "/cwlinkshell2",
+        "/cwl3",
+        "/cwlinkshell3",
+        "/cwl4",
+        "/cwlinkshell4",
+        "/cwl5",
+        "/cwlinkshell5",
+        "/cwl6",
+        "/cwlinkshell6",
+        "/cwl7",
+        "/cwlinkshell7",
+        "/cwl8",
+        "/cwlinkshell8",
+        "/l1",
+        "/linkshell1",
+        "/l2",
+        "/linkshell2",
+        "/l3",
+        "/linkshell3",
+        "/l4",
+        "/linkshell4",
+        "/l5",
+        "/linkshell5",
+        "/l6",
+        "/linkshell6",
+        "/l7",
+        "/linkshell7",
+        "/l8",
+        "/linkshell8"
+    };
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-    
+
 
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this);
@@ -66,7 +114,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUI;
 
         speech = new RestrictedSpeech.SubmissiveSpeech(Configuration);// Speaker(Configuration);
-        
+
         InteropProvider.InitializeFromAttributes(this);
         ProcessChatInputHook.Enable();
         // Add a simple message to the log with level set to information
@@ -75,16 +123,18 @@ public sealed class Plugin : IDalamudPlugin
         Log.Information($"===A cool log message from {PluginInterface.Manifest.Name}===");
     }
 
-    private void _configureCommands() {
+    private void _configureCommands()
+    {
 
         CommandManager.AddHandler(ConfigCommandName, new CommandInfo(OnCommand)
         {
             HelpMessage = "Toggles Forced Speech"
         });
     }
-    
-    private unsafe byte ProcessChatInputDetour(IntPtr uiModule, byte** message, IntPtr a3) {
-         // Put all this shit in a try-catch loop so we can catch any possible thrown exception.
+
+    private unsafe byte ProcessChatInputDetour(IntPtr uiModule, byte** message, IntPtr a3)
+    {
+        // Put all this shit in a try-catch loop so we can catch any possible thrown exception.
         try
         {
             // Grab the original string.
@@ -110,6 +160,9 @@ public sealed class Plugin : IDalamudPlugin
             Log.Debug($"Detouring Message: {messageDecoded}");
             if (messageDecoded.StartsWith("/"))
             {
+                matchedCommand = channelaliases.AsQueryable()
+                    .FirstOrDefault(prefix => messageDecoded.StartsWith(prefix,
+                                    StringComparison.OrdinalIgnoreCase));
                 // This means its not a chat channel command and just a normal command, so return original.
                 if (matchedCommand.IsNullOrEmpty())
                 {
@@ -118,7 +171,7 @@ public sealed class Plugin : IDalamudPlugin
                 }
 
                 // Set the matched command to the matched channel type. 
-                matchedChannelType = matchedCommand;
+                matchedChannelType = matchedCommand.TrimEnd();
 
                 // if tell command is matched, need extra step to protect target name
                 if (matchedCommand.StartsWith("/tell") || matchedCommand.StartsWith("/t"))
@@ -151,18 +204,8 @@ public sealed class Plugin : IDalamudPlugin
             var stringToProcess = originalText.Substring(matchedCommand.Length);
 
             stringToProcess = speech.SubmissivelySpeak(stringToProcess);
-            // if (Configuration.ForcedSpeechEnabled) {
-            //     stringToProcess = speech.ForcedSpeech(stringToProcess);
-            // }
-            // if (Configuration.LockedSpeech) {
-            //     stringToProcess = speech.LockedSpeech(stringToProcess);
-            // }
-            // if (Configuration.UtterancesEnabled) {
-            //     stringToProcess = speech.Utterances(stringToProcess);
-            // }
-
             // once we have done that, garble that string, and then merge it back with the output command in front.
-            var output = matchedCommand + stringToProcess;
+            var output = matchedCommand + " " + stringToProcess;
 
             // append this to the newSeStringBuilder.
             newSeStringBuilder.Add(new TextPayload(output));
@@ -210,7 +253,8 @@ public sealed class Plugin : IDalamudPlugin
         CommandManager.RemoveHandler(ConfigCommandName);
     }
 
-    private void OnCommand(string command, string args) {
+    private void OnCommand(string command, string args)
+    {
         ConfigWindow.Toggle();
     }
 
