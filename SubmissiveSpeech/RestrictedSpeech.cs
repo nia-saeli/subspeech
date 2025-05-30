@@ -19,7 +19,7 @@ namespace RestrictedSpeech
         Regex sentence_regex;
         Regex word_regex;
         Regex emoji_regex;
-        Regex compliance_regex;
+        // Regex compliance_regex;
 
         public SubmissiveSpeech(Configuration config)
         {
@@ -27,13 +27,13 @@ namespace RestrictedSpeech
             sentence_regex = new Regex(SENTENCE_REGEX);
             word_regex = new Regex(WORD_REGEX);
             emoji_regex = new Regex(EMOJI_REGEX);
-            compliance_regex = new Regex(configuration.CurrentProfile.CompelledSpeech);
+            // compliance_regex = new Regex(configuration.CurrentProfile.CompelledSpeech);
         }
         public bool SetToSpeakSubmissively()
         {
             return
                 configuration.CurrentProfile.ForcedSpeechEnabled ||
-                configuration.CurrentProfile.UtterancesEnabled ||
+                configuration.CurrentProfile.TicksEnabled ||
                 configuration.CurrentProfile.PronounCorrectionEnabled ||
                 configuration.CurrentProfile.StutterEnabled ||
                 configuration.CurrentProfile.SentenceStartEnabled ||
@@ -47,7 +47,7 @@ namespace RestrictedSpeech
             Random rand = new Random();
 
             List<string> words = input.Split(" ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-            int ticks = (int)Math.Ceiling((double)words.Count * configuration.CurrentProfile.UtteranceMaxPortionOfSpeech);
+            int ticks = (int)Math.Ceiling((double)words.Count * configuration.CurrentProfile.TickMaxPortionOfSpeech);
             bool to_replace = true;
             Log.Debug($"Looping over words with {words.Count}");
             for (int i = 0; i < words.Count; i++)
@@ -128,8 +128,8 @@ namespace RestrictedSpeech
             if (configuration.CurrentProfile.ForcedSpeechEnabled)
             {
                 Log.Debug($"Process {word} using forced speech and early returning");
-                int index = rand.Next(configuration.CurrentProfile.ForcedWords.Count);
-                return configuration.CurrentProfile.ForcedWords[index];
+                int index = rand.Next(configuration.CurrentProfile.CompelledSpeechWords.Count);
+                return configuration.CurrentProfile.CompelledSpeechWords[index];
             }
             // If this is found in a pronouns list, change it.
             if (configuration.CurrentProfile.PronounCorrectionEnabled)
@@ -153,13 +153,12 @@ namespace RestrictedSpeech
                 }
                 // Randomize it with a slightly more drammatic stutter
                 rand.Next(configuration.CurrentProfile.MaxStutterSeverity);
-
                 word = stutter + word;
             }
             // Finally if there is an utterance required, add it.
             // The number of ticks here is to respect the maximum portion of a sentence
             // (to prevent RNG from making people have a spasm of utterances unless they want to.)
-            if (configuration.CurrentProfile.UtterancesEnabled && ticks > 0)
+            if (configuration.CurrentProfile.TicksEnabled && ticks > 0)
             {
                 Log.Debug($"Process {word} verbal ticks");
 
@@ -170,18 +169,17 @@ namespace RestrictedSpeech
                 // Note: For simplicity, the roll calculation is measuring less than for the chance .
                 var bias = total_words / (1 + word_index);
                 var roll = rand.NextDouble() * bias;
-                if (configuration.CurrentProfile.Utterances.Count == 0)
+                if (configuration.CurrentProfile.Ticks.Count == 0)
                 {
                     Log.Debug($"No verbal ticks found, this should not be possible to set, so there is an error in your configuration.CurrentProfile.");
                 }
-                else if (roll < configuration.CurrentProfile.UtteranceChance)
+                else if (roll < configuration.CurrentProfile.TickChance)
                 {
                     ticks -= 1;
-                    int index = rand.Next(configuration.CurrentProfile.Utterances.Count);
-                    string tick = configuration.CurrentProfile.Utterances[index];
+                    int index = rand.Next(configuration.CurrentProfile.Ticks.Count);
+                    string tick = configuration.CurrentProfile.Ticks[index];
                     word = word + ", " + tick;
                     postfix_punctuation = ",";
-
                 }
             }
             return word;
@@ -190,7 +188,7 @@ namespace RestrictedSpeech
         public string Pronouns(string input)
         {
             StringBuilder output = new StringBuilder();
-            // This should just be a simple key lookup replacement as the definition for this should be kept within a dictionary.
+
             foreach (string full_word in input.Split(' ', StringSplitOptions.RemoveEmptyEntries))
             {
                 if (isEmoji(full_word))
@@ -212,6 +210,7 @@ namespace RestrictedSpeech
                 output.Append(post);
                 output.Append(" ");
             }
+
             return output.ToString().TrimEnd();
         }
 

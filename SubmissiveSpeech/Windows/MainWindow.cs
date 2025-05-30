@@ -1,16 +1,14 @@
 using System;
 using System.Numerics;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
-using Lumina.Excel.Sheets;
 
 namespace SubmissiveSpeech.Windows;
 
 public class MainWindow : Window, IDisposable
 {
     private Plugin plugin;
+    private ProfileEditor profileEditor;
 
     // We give this window a hidden ID using ##
     // So that the user will see "My Amazing Window" as window title,
@@ -25,6 +23,7 @@ public class MainWindow : Window, IDisposable
         };
 
         this.plugin = plugin;
+        profileEditor = new ProfileEditor(plugin.Configuration.CurrentProfile);
     }
 
     public void Dispose() { }
@@ -36,55 +35,55 @@ public class MainWindow : Window, IDisposable
         // provide through our bindings, leading to a Crash to Desktop.
         // Replacements can be found in the ImGuiHelpers Class
         // ImGui.TextUnformatted($"The random config bool is {plugin.Configuration.SomePropertyToBeSavedAndWithADefault}");
-
-        if (ImGui.Button("Show Settings"))
-        {
-            plugin.ToggleConfigUI();
-        }
-
-        ImGui.Spacing();
-
-        // Normally a BeginChild() would have to be followed by an unconditional EndChild(),
-        // ImRaii takes care of this after the scope ends.
-        // This works for all ImGui functions that require specific handling, examples are BeginTable() or Indent().
-        using (var child = ImRaii.Child("SomeChildWithAScrollbar", Vector2.Zero, true))
-        {
-            // Check if this child is drawing
-            if (child.Success)
-            {
-                ImGuiHelpers.ScaledDummy(20.0f);
-
-                // Example for other services that Dalamud provides.
-                // ClientState provides a wrapper filled with information about the local player object and client.
-
-                var localPlayer = Plugin.ClientState.LocalPlayer;
-                if (localPlayer == null)
-                {
-                    ImGui.TextUnformatted("Our local player is currently not loaded.");
-                    return;
-                }
-
-                if (!localPlayer.ClassJob.IsValid)
-                {
-                    ImGui.TextUnformatted("Our current job is currently not valid.");
-                    return;
-                }
-
-                // ExtractText() should be the preferred method to read Lumina SeStrings,
-                // as ToString does not provide the actual text values, instead gives an encoded macro string.
-                ImGui.TextUnformatted($"Our current job is ({localPlayer.ClassJob.RowId}) \"{localPlayer.ClassJob.Value.Abbreviation.ExtractText()}\"");
-
-                // Example for quarrying Lumina directly, getting the name of our current area.
-                var territoryId = Plugin.ClientState.TerritoryType;
-                if (Plugin.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(territoryId, out var territoryRow))
-                {
-                    ImGui.TextUnformatted($"We are currently in ({territoryId}) \"{territoryRow.PlaceName.Value.Name.ExtractText()}\"");
-                }
-                else
-                {
-                    ImGui.TextUnformatted("Invalid territory.");
-                }
-            }
-        }
+        profileEditor.Draw();
+        // if (ImGui.Button("Show Settings"))
+        // {
+        //     plugin.ToggleConfigUI();
+        // }
+        //
+        // ImGui.Spacing();
+        //
+        // // Normally a BeginChild() would have to be followed by an unconditional EndChild(),
+        // // ImRaii takes care of this after the scope ends.
+        // // This works for all ImGui functions that require specific handling, examples are BeginTable() or Indent().
+        // using (var child = ImRaii.Child("SomeChildWithAScrollbar", Vector2.Zero, true))
+        // {
+        //     // Check if this child is drawing
+        //     if (child.Success)
+        //     {
+        //         ImGuiHelpers.ScaledDummy(20.0f);
+        //
+        //         // Example for other services that Dalamud provides.
+        //         // ClientState provides a wrapper filled with information about the local player object and client.
+        //
+        //         var localPlayer = Plugin.ClientState.LocalPlayer;
+        //         if (localPlayer == null)
+        //         {
+        //             ImGui.TextUnformatted("Our local player is currently not loaded.");
+        //             return;
+        //         }
+        //
+        //         if (!localPlayer.ClassJob.IsValid)
+        //         {
+        //             ImGui.TextUnformatted("Our current job is currently not valid.");
+        //             return;
+        //         }
+        //
+        //         // ExtractText() should be the preferred method to read Lumina SeStrings,
+        //         // as ToString does not provide the actual text values, instead gives an encoded macro string.
+        //         ImGui.TextUnformatted($"Our current job is ({localPlayer.ClassJob.RowId}) \"{localPlayer.ClassJob.Value.Abbreviation.ExtractText()}\"");
+        //
+        //         // Example for quarrying Lumina directly, getting the name of our current area.
+        //         var territoryId = Plugin.ClientState.TerritoryType;
+        //         if (Plugin.DataManager.GetExcelSheet<TerritoryType>().TryGetRow(territoryId, out var territoryRow))
+        //         {
+        //             ImGui.TextUnformatted($"We are currently in ({territoryId}) \"{territoryRow.PlaceName.Value.Name.ExtractText()}\"");
+        //         }
+        //         else
+        //         {
+        //             ImGui.TextUnformatted("Invalid territory.");
+        //         }
+        //     }
+        // }
     }
 }

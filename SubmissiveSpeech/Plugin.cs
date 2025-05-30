@@ -43,54 +43,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private readonly List<string> channelaliases = new List<string>()
     {
-        "/t",
-        "/tell",
-        "/s",
-        "/say",
-        "/p",
-        "/party",
-        "/a",
-        "/alliance",
-        "/y",
-        "/yell",
-        "/sh",
-        "/shout",
-        "/fc",
-        "/freecompany",
-        "/n",
-        "/novice",
-        "/cwl1",
-        "/cwlinkshell1",
-        "/cwl2",
-        "/cwlinkshell2",
-        "/cwl3",
-        "/cwlinkshell3",
-        "/cwl4",
-        "/cwlinkshell4",
-        "/cwl5",
-        "/cwlinkshell5",
-        "/cwl6",
-        "/cwlinkshell6",
-        "/cwl7",
-        "/cwlinkshell7",
-        "/cwl8",
-        "/cwlinkshell8",
-        "/l1",
-        "/linkshell1",
-        "/l2",
-        "/linkshell2",
-        "/l3",
-        "/linkshell3",
-        "/l4",
-        "/linkshell4",
-        "/l5",
-        "/linkshell5",
-        "/l6",
-        "/linkshell6",
-        "/l7",
-        "/linkshell7",
-        "/l8",
-        "/linkshell8"
+        "/t", "/tell", "/s", "/say", "/p", "/party", "/a", "/alliance", "/y", "/yell", "/sh", "/shout", "/fc", "/freecompany", "/n", "/novice", "/cwl1", "/cwlinkshell1", "/cwl2", "/cwlinkshell2", "/cwl3", "/cwlinkshell3", "/cwl4", "/cwlinkshell4", "/cwl5", "/cwlinkshell5", "/cwl6", "/cwlinkshell6", "/cwl7", "/cwlinkshell7", "/cwl8", "/cwlinkshell8", "/l1", "/linkshell1", "/l2", "/linkshell2", "/l3", "/linkshell3", "/l4", "/linkshell4", "/l5", "/linkshell5", "/l6", "/linkshell6", "/l7", "/linkshell7", "/l8", "/linkshell8"
     };
     public Plugin()
     {
@@ -131,7 +84,7 @@ public sealed class Plugin : IDalamudPlugin
             HelpMessage = "Toggles Forced Speech"
         });
     }
-
+    /// Taken from Gagspeak chat deteours to pull the chat information.
     private unsafe byte ProcessChatInputDetour(IntPtr uiModule, byte** message, IntPtr a3)
     {
         // Put all this shit in a try-catch loop so we can catch any possible thrown exception.
