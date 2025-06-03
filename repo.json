@@ -1,0 +1,26 @@
+[
+    {
+        "Author": "nia",
+        "Name": "Submissive Speech",
+        "Punchline": "Need some help speaking properly, pet?",
+        "Description": "This plugin helps control your speech patterns and ensure that good little pets maintain their proper manners.",
+        "ApplicableVersion": "any",
+        "Tags": [
+            "BSDM",
+            "submission",
+            "chat-modification"
+        ],
+        "InternalName": "SubmissiveSpeech",
+        "AssemblyVersion": "0.0.1.0",
+        "TestingAssemblyVersion": "0.0.1.0",
+        "RepoUrl": "https://github.com/nia-saeli/subspeech",
+        "DalamudApiLevel": 12,
+        "LoadPriority": 0,
+        "IsHide": false,
+        "IsTestingExclusive": false,
+        "DownloadLinkInstall": "https://github.com/nia-saeli/subspeech/releases/download/0.0.1.0/Release.zip",
+        "DownloadLinkTesting": "https://github.com/nia-saeli/subspeech/releases/download/0.0.1.0/Release.zip",
+        "DownloadLinkUpdate": "https://github.com/nia-saeli/subspeech/releases/download/0.0.1.0/Release.zip",
+        "LastUpdate": "1748940960"
+    }
+]

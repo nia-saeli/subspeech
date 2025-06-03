@@ -1,12 +1,15 @@
 {
     "Author": "nia",
     "Name": "Submissive Speech",
-    "Punchline": "Need some help speaking well, pet?",
+    "Punchline": "Need some help speaking properly, pet?",
     "Description": "This plugin helps control your speech patterns and ensure that good little pets maintain their proper manners.",
     "ApplicableVersion": "any",
     "Tags": [
         "BSDM",
         "submission",
         "chat-modification"
-    ]
+    ],
+    "InternalName": "SubmissiveSpeech",
+    "DalamudApiLevel": 12,
+    "AssemblyVersion": "0.0.1.0"
 }

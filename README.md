@@ -13,3 +13,11 @@ A plugin for Dalamud that is a tool to help submissives speak like proper subbie
   - Forced sentence start and ending
   - Pronoun substitution
   - Randomized Vocal Ticks
+
+## Download
+
+Add the following repository to Dalamud to download
+
+```sh
+https://raw.githubusercontent.com/nia-saeli/subspeech/main/repo.json
+```
