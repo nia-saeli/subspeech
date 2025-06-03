@@ -14,43 +14,163 @@ public class Configuration : IPluginConfiguration
     public int Version { get; set; } = 0;
     // public Dictionary<string, Profile> DefaultProfile = new Dictionary<Guid, Profile>();
     // public Dictionary<Guid, Profile> CustomProfile = new Dictionary<Guid, Profile>();
-    public Profile CurrentProfile = new Profile();
+    public Guid ActiveProfileId;
+    public int ActiveProfileIndex
+    {
+        get
+        {
+            if (Profiles.Count == 0)
+            {
+                return -1;
+            }
+            else
+                return Profiles.FindIndex(0, Profiles.Count, profile => profile.Id.Equals(ActiveProfileId));
+        }
+    }
+    public List<Profile> Profiles = new List<Profile>();
+    public Profile ActiveProfile
+    {
+        get
+        {
+            var profile = Profiles.Find(profile => profile.Id.Equals(ActiveProfileId));
+            if (profile == null)
+            {
+                Plugin.Log.Debug($"ProfileID {ActiveProfileId} is null returning default");
+                return Profiles[0];
+            }
+            else
+            {
+                Plugin.Log.Debug($"returning ProfileID {ActiveProfileId}");
+                return profile;
+            }
+        }
+    }
 
     public bool Locked { get; set; } = false;
     public void Save()
     {
         Plugin.PluginInterface.SavePluginConfig(this);
     }
+    public static List<Profile> BuiltInProfiles()
+    {
+        List<Profile> profiles = new List<Profile>() {
+            new Profile {
+                Label = "Empty",
+                Readonly = true,
+            },
+            new Profile {
+                Label = "Submissive",
+                Readonly = true,
+                CompelledSpeechEnabled = false,
+                TicksEnabled = false,
+                PronounCorrectionEnabled = false,
+                StutterEnabled = false,
+                SentenceStartEnabled = false,
+                SentenceEndingEnabled = false,
+                LowercaseEnforcement = true,
+                CompelledSpeechWords = new List<string>() {},
+                Ticks = new List<string>() {},
+
+                SentenceStarts = "",
+                SentenceEndings = "",
+
+                PronounsReplacements = new Dictionary<string, string>() {
+                    { "i", "i" },
+                    { "me", "me" },
+                    { "myself", "myself" },
+                    { "master", "Master" },
+                    { "mistress", "Mistress" },
+                    { "sir", "Sir" },
+                    { "miss", "Miss" }
+                },
+
+                TickChance = 1.00f,
+                TickMaxPortionOfSpeech = 0.1f,
+                TickEnd = "",
+
+                StutterChance = 10,
+                MaxStutterSeverity = 3,
+                MaxStuttersPerSentence = 3,
+            },
+            new Profile {
+                Label = "Puppy",
+                Readonly = true,
+                TicksEnabled = true,
+                PronounCorrectionEnabled = true,
+                StutterEnabled = true,
+                SentenceStartEnabled = false,
+                SentenceEndingEnabled = false,
+                CompelledSpeechWords = new List<string>() {},
+                Ticks = new List<string>() {
+                    "woof", "bark"
+                },
+
+                SentenceStarts = "",
+                SentenceEndings = "",
+
+                PronounsReplacements = new Dictionary<string, string>() {
+                    { "i", "puppy" },
+                    { "me", "puppy" },
+                    { "i'm", "puppy is"},
+                    { "im", "puppy is" },
+                    { "myself", "this puppy" },
+                    { "master", "Master" },
+                    { "mistress", "Mistress" },
+                    { "sir", "Sir" },
+                    { "miss", "Miss" },
+                    { "owner", "Owner" }
+                },
+
+                TickChance = 0.20f,
+                TickMaxPortionOfSpeech = 0.2f,
+
+                StutterChance = 10,
+                MaxStutterSeverity = 2,
+                MaxStuttersPerSentence = 3,
+            }
+        };
+        return profiles;
+    }
+
+    internal void SetActiveProfile(Guid id)
+    {
+        Plugin.Log.Debug($"Attempting to set {id}");
+        var p = Profiles.Find(v => v.Id.Equals(id));
+        // if (0 >= Profiles.FindIndex(0, Profiles.Count, v => v.Id.Equals(id)))
+        if (p != null)
+        {
+            this.ActiveProfileId = id;
+            Plugin.Log.Debug($"Found and setting {this.ActiveProfileId} as ActiveProfileId");
+        }
+    }
+    public Configuration()
+    {
+        if (this.Profiles.Count > 0)
+            this.ActiveProfileId = this.Profiles[0].Id;
+    }
 }
 // TODO: Convert the configuration to include profiles with all the contained information.
 [Serializable]
 public class Profile
 {
-    public Guid id { get; set; }
+    public Guid Id { get; set; }
     public string Label { get; set; } = "";
     public bool Readonly { get; set; } = false;
-    public bool ForcedSpeechEnabled { get; set; } = false;
+    public bool CompelledSpeechEnabled { get; set; } = false;
     public bool TicksEnabled { get; set; } = false;
     public bool PronounCorrectionEnabled { get; set; } = false;
     public bool StutterEnabled { get; set; } = false;
     public bool SentenceStartEnabled { get; set; } = false;
     public bool SentenceEndingEnabled { get; set; } = false;
+    public bool LowercaseEnforcement { get; set; } = false;
 
-    public List<string> CompelledSpeechWords = new List<string>() { "..." };
-    public List<string> Ticks = new List<string>() { "umm", "uh" };
+    public List<string> CompelledSpeechWords = new List<string>();
+    public List<string> Ticks = new List<string>();
 
     public string SentenceStarts = "";
     public string SentenceEndings = "";
 
-    public Dictionary<string, string> PronounsReplacements = new Dictionary<string, string>() {
-        { "i", "i" },
-        { "me", "me" },
-        { "myself", "myself" },
-        { "master", "Master" },
-        { "mistress", "Mistress" },
-        { "sir", "Sir" },
-        { "miss", "Miss" }
-    };
+    public Dictionary<string, string> PronounsReplacements = new Dictionary<string, string>() { };
 
     public float TickChance = 1.00f;
     public float TickMaxPortionOfSpeech = 0.1f;
@@ -62,51 +182,79 @@ public class Profile
 
     public Profile()
     {
-        this.id = Guid.NewGuid();
+        this.Id = Guid.NewGuid();
     }
 }
 class ProfileEditor
 {
-
     private string addPronounKey = "";
     private string addPronounValue = "";
     private string addTick = "";
-    private Profile profile;
-
-    public ProfileEditor(Profile profile)
+    /// Returns if save has been pressed.
+    public bool Draw(Profile profile)
     {
-        this.profile = profile;
-    }
-    public void Draw()
-    {
-        if (ImGui.CollapsingHeader($"Profile##{this.profile.id}"))
+        if (ImGui.CollapsingHeader($"Profile##{profile.Id}"))
         {
-            var tempLabel = this.profile.Label;
-            if (ImGui.InputText($"Label##{this.profile.id}label", ref tempLabel, 64))
-            {
-                this.profile.Label = tempLabel;
-            }
-            // TODO: Make this conditionally editable
-            var tempReadonly = this.profile.Readonly;
-            if (ImGui.Checkbox($"Readonly##{this.profile.id}readonly", ref tempReadonly))
-            {
-                this.profile.Readonly = tempReadonly;
-            }
+            ImGui.BeginDisabled(profile.Readonly);
+            if (profile.Readonly)
+                ImGui.TextUnformatted("This is a built-in profile and cannot be changed. To customize your speech patters, create a custom profile from the main menu to change these settings.");
+            InputText($"Label##{profile.Id}label", profile.Label, 64, v => profile.Label = v);
+            ImGui.EndDisabled();
         }
 
-        this.DrawTogglesRows();
-        this.DrawTicksRows();
-        this.DrawStutterRows();
-        this.DrawSentenceConfigRows();
+        this.DrawTogglesRows(profile);
+        this.DrawTicksRows(profile);
+        this.DrawStutterRows(profile);
+        this.DrawSentenceConfigRows(profile);
+        if (!profile.Readonly && ImGui.Button("Save Changes"))
+        {
+            return true;
+        }
+        return false;
     }
+    private void InputText(string label, string input, uint length, Action<string> setter)
+    {
+        var tmp = input;
+        if (ImGui.InputText(label, ref tmp, length) && tmp != input)
+        {
+            setter(tmp);
+        }
+
+    }
+    private void InputInt(string label, int current, Action<int> setter)
+    {
+        var tmp = current;
+        if (ImGui.InputInt(label, ref tmp) && tmp != current)
+        {
+            setter(tmp);
+        }
+    }
+    private void Checkbox(string label, bool current, Action<bool> setter)
+    {
+        var tmp = current;
+        if (ImGui.Checkbox(label, ref tmp) && tmp != current)
+        {
+            setter(tmp);
+        }
+    }
+
     // Organizational Helpers to define specific portions of the UI Widgets.
     private void DrawWordListWidget(string name, List<string> words, ref string placeholderword)
     {
-        using (ImRaii.Table($"{name}##{this.profile.id}{name}", 2))
+        using (ImRaii.Table($"{name}##{name}list", 2))
         {
             ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 48);
             ImGui.TableSetupColumn("Word");
             ImGui.TableHeadersRow();
+
+            ImGui.TableNextColumn();
+            if (ImGui.Button("+##add"))
+            {
+                words.Add(placeholderword);
+                placeholderword = "";
+            }
+            ImGui.TableNextColumn();
+            ImGui.InputText("##newword", ref placeholderword, 40);
 
             for (int i = 0; i < words.Count; i++)
             {
@@ -122,22 +270,12 @@ class ProfileEditor
                     words[i] = tempWord;
                 }
             }
-
-            ImGui.TableNextColumn();
-            if (ImGui.Button("+##add"))
-            {
-                words.Add(placeholderword);
-                placeholderword = "";
-            }
-
-            ImGui.TableNextColumn();
-            ImGui.InputText("##newword", ref placeholderword, 40);
         }
     }
 
     private void DrawDictionaryWidget(string name, Dictionary<string, string> dict, ref string placeholderKey, ref string placeholderValue)
     {
-        using (ImRaii.Table($"{name}###{name}{this.profile.id}", 3))
+        using (ImRaii.Table($"{name}###{name}dictionary", 3))
         {
             ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 48);
             ImGui.TableSetupColumn("Noun (Not Case Sensitive)");
@@ -155,10 +293,7 @@ class ProfileEditor
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted(k);
                 ImGui.TableNextColumn();
-                if (ImGui.InputText($"##{k}", ref old_value, 20))
-                {
-                    dict[k] = old_value;
-                }
+                InputText($"##{k}", dict[k], 20, v => dict[k] = v);
             }
 
             ImGui.TableNextColumn();
@@ -174,96 +309,58 @@ class ProfileEditor
             ImGui.InputText($"##{name}inputvalue", ref placeholderValue, 20);
         }
     }
-    private void DrawTogglesRows()
+    private void DrawTogglesRows(Profile profile)
     {
-        if (ImGui.CollapsingHeader($"Toggles##{this.profile.id}feature_toggles"))
+        if (ImGui.CollapsingHeader($"Feature Toggles##{profile.Id}feature_toggles"))
         {
-            ImGui.TableNextColumn();
-            ImGui.TextUnformatted("ForcedSpeechEnabled");
-            ImGui.TableNextColumn();
-            var tempForcedSpeechEnabled = this.profile.ForcedSpeechEnabled;
-            if (ImGui.Checkbox("", ref tempForcedSpeechEnabled))
-            {
-                this.profile.ForcedSpeechEnabled = tempForcedSpeechEnabled;
-            }
-            ImGui.TableNextColumn();
-            ImGui.TextUnformatted("TicksEnabled");
-            ImGui.TableNextColumn();
-            var tempTicksEnabled = this.profile.TicksEnabled;
-            if (ImGui.Checkbox("##TicksEnabled", ref tempTicksEnabled))
-            {
-                this.profile.TicksEnabled = tempTicksEnabled;
-            }
-            ImGui.TableNextColumn();
-            ImGui.TextUnformatted("PronounCorrectionEnabled");
-            ImGui.TableNextColumn();
-            var tempPronounCorrectionEnabled = this.profile.PronounCorrectionEnabled;
-            if (ImGui.Checkbox("##PronounCorrectionEnabled", ref tempPronounCorrectionEnabled))
-            {
-                this.profile.PronounCorrectionEnabled = tempPronounCorrectionEnabled;
-            }
-            ImGui.TableNextColumn();
-            ImGui.TextUnformatted("StutterEnabled");
-            ImGui.TableNextColumn();
-            var tempStutterEnabled = this.profile.StutterEnabled;
-            if (ImGui.Checkbox("##StutterEnabled", ref tempStutterEnabled))
-            {
-                this.profile.StutterEnabled = tempStutterEnabled;
-            }
-            ImGui.TableNextColumn();
-            ImGui.TextUnformatted("SentenceStartEnabled");
-            ImGui.TableNextColumn();
-            var tempSentenceStartEnabled = this.profile.SentenceStartEnabled;
-            if (ImGui.Checkbox("##SentenceStartEnabled", ref tempSentenceStartEnabled))
-            {
-                this.profile.SentenceStartEnabled = tempSentenceStartEnabled;
-            }
-            ImGui.TableNextColumn();
-            ImGui.TextUnformatted("SentenceEndingEnabled");
-            ImGui.TableNextColumn();
-            var tempSentenceEndingEnabled = this.profile.SentenceEndingEnabled;
-            if (ImGui.Checkbox("##SentenceEndingEnabled", ref tempSentenceEndingEnabled))
-            {
-                this.profile.SentenceStartEnabled = tempSentenceEndingEnabled;
-            }
+            ImGui.BeginDisabled(profile.Readonly);
+            Checkbox("Compelled Speech Enabled", profile.CompelledSpeechEnabled, v => profile.CompelledSpeechEnabled = v);
+            Checkbox("TicksEnabled", profile.TicksEnabled, v => profile.TicksEnabled = v);
+            Checkbox("PronounCorrectionEnabled", profile.PronounCorrectionEnabled, v => profile.PronounCorrectionEnabled = v);
+            Checkbox("StutterEnabled", profile.StutterEnabled, v => profile.StutterEnabled = v);
+            Checkbox("SentenceStartEnabled", profile.SentenceStartEnabled, v => profile.SentenceStartEnabled = v);
+            Checkbox("SentenceEndingEnabled", profile.SentenceEndingEnabled, v => profile.SentenceEndingEnabled = v);
+            ImGui.EndDisabled();
         }
     }
 
-    private void DrawTicksRows()
+    private void DrawTicksRows(Profile profile)
     {
-        if (ImGui.CollapsingHeader($"Vocal Ticks##{this.profile.id}ticks"))
+        if (ImGui.CollapsingHeader($"Vocal Ticks##{profile.Id}ticks"))
         {
-            this.DrawWordListWidget("Possible Ticks", this.profile.Ticks, ref addTick);
-            int tempTickChance = (int)(this.profile.TickChance * 100);
-            if (ImGui.InputInt("Tick Chance %", ref tempTickChance, 1, 10))
-            {
-                this.profile.TickChance = (float)(tempTickChance / 100.0);
-            }
-            int tempTickMaxPortionOfSpeech = (int)(this.profile.TickMaxPortionOfSpeech * 100);
-            if (ImGui.InputInt("Tick Portion of Speech", ref tempTickMaxPortionOfSpeech, 1, 10))
-            {
-                this.profile.TickMaxPortionOfSpeech = (float)(tempTickMaxPortionOfSpeech / 100.0);
-            }
+            ImGui.BeginDisabled(profile.Readonly);
+            this.DrawWordListWidget("Possible Ticks", profile.Ticks, ref addTick);
+            int tempTickChance = (int)(profile.TickChance * 100);
+            InputInt("Tick Chance %", (int)(profile.TickChance * 100), v =>
+                profile.TickChance = (float)(v / 100.0));
+            int tempTickMaxPortionOfSpeech = (int)(profile.TickMaxPortionOfSpeech * 100);
+            InputInt("Tick Portion of Speech", (int)(profile.TickMaxPortionOfSpeech * 100), v =>
+                profile.TickMaxPortionOfSpeech = (float)(v / 100.0));
+            ImGui.EndDisabled();
         }
     }
 
-    private void DrawStutterRows()
+    private void DrawStutterRows(Profile profile)
     {
-        if (ImGui.CollapsingHeader($"Stutter Configuration##{this.profile.id}stutter"))
+        if (ImGui.CollapsingHeader($"Stutter Configuration##{profile.Id}stutter"))
         {
-            ImGui.InputInt("StutterChance", ref this.profile.StutterChance, 1, 10);
-            ImGui.InputInt("MaxStutterSeverity", ref this.profile.MaxStutterSeverity, 1, 10);
-            ImGui.InputInt("MaxStuttersPerSentence", ref this.profile.MaxStuttersPerSentence, 1, 10);
+            ImGui.BeginDisabled(profile.Readonly);
+            InputInt("StutterChance", profile.StutterChance, v => profile.StutterChance = v);
+            InputInt("MaxStutterSeverity", profile.MaxStutterSeverity, v => profile.MaxStutterSeverity = v);
+            InputInt("MaxStuttersPerSentence", profile.MaxStuttersPerSentence, v => profile.MaxStuttersPerSentence = v);
+            ImGui.EndDisabled();
         }
     }
 
-    private void DrawSentenceConfigRows()
+    private void DrawSentenceConfigRows(Profile profile)
     {
-        if (ImGui.CollapsingHeader($"General Sentence Configuration##{this.profile.id}general"))
+        if (ImGui.CollapsingHeader($"General Sentence Configuration##{profile.Id}general"))
         {
-            ImGui.InputText("SentenceStarts", ref this.profile.SentenceStarts, 120);
-            ImGui.InputText("SentenceEndings", ref this.profile.SentenceEndings, 120);
-            this.DrawDictionaryWidget("pronouns", this.profile.PronounsReplacements, ref addPronounKey, ref addPronounValue);
+            ImGui.BeginDisabled(profile.Readonly);
+            InputText("SentenceStarts", profile.SentenceStarts, 120, v => profile.SentenceStarts = v);
+            InputText("SentenceEndings", profile.SentenceEndings, 120, v => profile.SentenceEndings = v);
+            this.DrawDictionaryWidget("pronouns", profile.PronounsReplacements, ref addPronounKey, ref addPronounValue);
+            ImGui.EndDisabled();
         }
     }
 }

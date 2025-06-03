@@ -1,13 +1,12 @@
 {
-  "Author": "nia",
-  "Name": "Submissive Speech",
-  "Punchline": "Do you really think you'd be allowed to speak, pet?",
-  "Description": "Shhhh, don't worry about anything, just don't worry about it <3.",
-  "ApplicableVersion": "any",
-  "Tags": [
-    "BSDM",
-    "gagspeak",
-    "saeli-manor",
-    "plogon"
-  ]
+    "Author": "nia",
+    "Name": "Submissive Speech",
+    "Punchline": "Need some help speaking well, pet?",
+    "Description": "This plugin helps control your speech patterns and ensure that good little pets maintain their proper manners.",
+    "ApplicableVersion": "any",
+    "Tags": [
+        "BSDM",
+        "submission",
+        "chat-modification"
+    ]
 }

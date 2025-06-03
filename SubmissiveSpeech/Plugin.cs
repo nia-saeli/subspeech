@@ -40,7 +40,8 @@ public sealed class Plugin : IDalamudPlugin
     private unsafe delegate byte ProcessChatInputDelegate(IntPtr uiModule, byte** message, IntPtr a3);
     [Signature("E8 ?? ?? ?? ?? FE 86 ?? ?? ?? ?? C7 86 ?? ?? ?? ?? ?? ?? ?? ??", DetourName = nameof(ProcessChatInputDetour), Fallibility = Fallibility.Auto)]
     private Hook<ProcessChatInputDelegate> ProcessChatInputHook { get; set; } = null!;
-
+    private readonly string chataliasregex = @"/\/[tspacyfnl][aechrowl1-8i]?[leyvnro]?[iltek1-8]?(n?k?shell|ance|company|ut|ce)?[1-8]?";
+    private Regex chataliasValidation;
     private readonly List<string> channelaliases = new List<string>()
     {
         "/t", "/tell", "/s", "/say", "/p", "/party", "/a", "/alliance", "/y", "/yell", "/sh", "/shout", "/fc", "/freecompany", "/n", "/novice", "/cwl1", "/cwlinkshell1", "/cwl2", "/cwlinkshell2", "/cwl3", "/cwlinkshell3", "/cwl4", "/cwlinkshell4", "/cwl5", "/cwlinkshell5", "/cwl6", "/cwlinkshell6", "/cwl7", "/cwlinkshell7", "/cwl8", "/cwlinkshell8", "/l1", "/linkshell1", "/l2", "/linkshell2", "/l3", "/linkshell3", "/l4", "/linkshell4", "/l5", "/linkshell5", "/l6", "/linkshell6", "/l7", "/linkshell7", "/l8", "/linkshell8"
@@ -48,7 +49,11 @@ public sealed class Plugin : IDalamudPlugin
     public Plugin()
     {
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-
+        if (Configuration.Profiles.Count() == 0)
+        {
+            Configuration.Profiles = Configuration.BuiltInProfiles();
+            Configuration.SetActiveProfile(Configuration.Profiles.First().Id);
+        }
 
         ConfigWindow = new ConfigWindow(this);
         MainWindow = new MainWindow(this);
@@ -73,6 +78,7 @@ public sealed class Plugin : IDalamudPlugin
         // Add a simple message to the log with level set to information
         // Use /xllog to open the log window in-game
         // Example Output: 00:57:54.959 | INF | [SubmissiveSpeech] ===A cool log message from Sample Plugin===
+        chataliasValidation = new Regex(chataliasregex);
         Log.Information($"===A cool log message from {PluginInterface.Manifest.Name}===");
     }
 
@@ -113,11 +119,13 @@ public sealed class Plugin : IDalamudPlugin
             Log.Debug($"Detouring Message: {messageDecoded}");
             if (messageDecoded.StartsWith("/"))
             {
+                bool isNotCommand = chataliasValidation.IsMatch(messageDecoded);
+
                 matchedCommand = channelaliases.AsQueryable()
                     .FirstOrDefault(prefix => messageDecoded.StartsWith(prefix,
                                     StringComparison.OrdinalIgnoreCase));
                 // This means its not a chat channel command and just a normal command, so return original.
-                if (matchedCommand.IsNullOrEmpty())
+                if (!isNotCommand || matchedCommand.IsNullOrEmpty())
                 {
                     Log.Debug("Ignoring Message as it is a command");
                     return ProcessChatInputHook.Original(uiModule, message, a3);

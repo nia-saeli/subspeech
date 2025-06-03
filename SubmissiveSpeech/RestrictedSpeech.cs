@@ -32,12 +32,12 @@ namespace RestrictedSpeech
         public bool SetToSpeakSubmissively()
         {
             return
-                configuration.CurrentProfile.ForcedSpeechEnabled ||
-                configuration.CurrentProfile.TicksEnabled ||
-                configuration.CurrentProfile.PronounCorrectionEnabled ||
-                configuration.CurrentProfile.StutterEnabled ||
-                configuration.CurrentProfile.SentenceStartEnabled ||
-                configuration.CurrentProfile.SentenceEndingEnabled;
+                configuration.ActiveProfile.CompelledSpeechEnabled ||
+                configuration.ActiveProfile.TicksEnabled ||
+                configuration.ActiveProfile.PronounCorrectionEnabled ||
+                configuration.ActiveProfile.StutterEnabled ||
+                configuration.ActiveProfile.SentenceStartEnabled ||
+                configuration.ActiveProfile.SentenceEndingEnabled;
         }
         public string SubmissivelySpeak(String input)
         {
@@ -47,7 +47,7 @@ namespace RestrictedSpeech
             Random rand = new Random();
 
             List<string> words = input.Split(" ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-            int ticks = (int)Math.Ceiling((double)words.Count * configuration.CurrentProfile.TickMaxPortionOfSpeech);
+            int ticks = (int)Math.Ceiling((double)words.Count * configuration.ActiveProfile.TickMaxPortionOfSpeech);
             bool to_replace = true;
             Log.Debug($"Looping over words with {words.Count}");
             for (int i = 0; i < words.Count; i++)
@@ -89,11 +89,11 @@ namespace RestrictedSpeech
                 output.Append(' ');
             }
             var final = output.ToString();
-            if (configuration.CurrentProfile.SentenceStartEnabled)
+            if (configuration.ActiveProfile.SentenceStartEnabled)
             {
                 final = SentenceStart(final);
             }
-            if (configuration.CurrentProfile.SentenceEndingEnabled)
+            if (configuration.ActiveProfile.SentenceEndingEnabled)
             {
                 final = SentenceEnding(final);
             }
@@ -125,40 +125,40 @@ namespace RestrictedSpeech
             // By default it will be empty
             postfix_punctuation = "";
             // Forced speech trumps all other speech and returns immediately, no further processing required.
-            if (configuration.CurrentProfile.ForcedSpeechEnabled)
+            if (configuration.ActiveProfile.CompelledSpeechEnabled)
             {
                 Log.Debug($"Process {word} using forced speech and early returning");
-                int index = rand.Next(configuration.CurrentProfile.CompelledSpeechWords.Count);
-                return configuration.CurrentProfile.CompelledSpeechWords[index];
+                int index = rand.Next(configuration.ActiveProfile.CompelledSpeechWords.Count);
+                return configuration.ActiveProfile.CompelledSpeechWords[index];
             }
             // If this is found in a pronouns list, change it.
-            if (configuration.CurrentProfile.PronounCorrectionEnabled)
+            if (configuration.ActiveProfile.PronounCorrectionEnabled)
             {
                 var key = word.ToLower();
-                if (configuration.CurrentProfile.PronounsReplacements.ContainsKey(key))
+                if (configuration.ActiveProfile.PronounsReplacements.ContainsKey(key))
                 {
                     Log.Debug($"Process {word} using forced pronouns");
-                    word = configuration.CurrentProfile.PronounsReplacements[key];
+                    word = configuration.ActiveProfile.PronounsReplacements[key];
                 }
             }
             // Roll for stuttering. TODO: Make configurable.
-            if (configuration.CurrentProfile.StutterEnabled && rand.Next(100) < configuration.CurrentProfile.StutterChance)
+            if (configuration.ActiveProfile.StutterEnabled && rand.Next(100) < configuration.ActiveProfile.StutterChance)
             {
                 Log.Debug($"Process {word} and making it stutter");
                 string stutter = "";
-                int max_stutters = rand.Next(configuration.CurrentProfile.MaxStutterSeverity);
+                int max_stutters = rand.Next(configuration.ActiveProfile.MaxStutterSeverity);
                 for (int i = 0; i < 1 + max_stutters; i++)
                 {
                     stutter += word.First() + "-";
                 }
                 // Randomize it with a slightly more drammatic stutter
-                rand.Next(configuration.CurrentProfile.MaxStutterSeverity);
+                rand.Next(configuration.ActiveProfile.MaxStutterSeverity);
                 word = stutter + word;
             }
             // Finally if there is an utterance required, add it.
             // The number of ticks here is to respect the maximum portion of a sentence
             // (to prevent RNG from making people have a spasm of utterances unless they want to.)
-            if (configuration.CurrentProfile.TicksEnabled && ticks > 0)
+            if (configuration.ActiveProfile.TicksEnabled && ticks > 0)
             {
                 Log.Debug($"Process {word} verbal ticks");
 
@@ -169,15 +169,15 @@ namespace RestrictedSpeech
                 // Note: For simplicity, the roll calculation is measuring less than for the chance .
                 var bias = total_words / (1 + word_index);
                 var roll = rand.NextDouble() * bias;
-                if (configuration.CurrentProfile.Ticks.Count == 0)
+                if (configuration.ActiveProfile.Ticks.Count == 0)
                 {
                     Log.Debug($"No verbal ticks found, this should not be possible to set, so there is an error in your configuration.CurrentProfile.");
                 }
-                else if (roll < configuration.CurrentProfile.TickChance)
+                else if (roll < configuration.ActiveProfile.TickChance)
                 {
                     ticks -= 1;
-                    int index = rand.Next(configuration.CurrentProfile.Ticks.Count);
-                    string tick = configuration.CurrentProfile.Ticks[index];
+                    int index = rand.Next(configuration.ActiveProfile.Ticks.Count);
+                    string tick = configuration.ActiveProfile.Ticks[index];
                     word = word + ", " + tick;
                     postfix_punctuation = ",";
                 }
@@ -199,9 +199,9 @@ namespace RestrictedSpeech
                 (string pre, string word, string post) = handlePunctuation(full_word);
 
                 output.Append(pre);
-                if (configuration.CurrentProfile.PronounsReplacements.ContainsKey(word))
+                if (configuration.ActiveProfile.PronounsReplacements.ContainsKey(word))
                 {
-                    output.Append(configuration.CurrentProfile.PronounsReplacements[word]);
+                    output.Append(configuration.ActiveProfile.PronounsReplacements[word]);
                 }
                 else
                 {
@@ -216,9 +216,9 @@ namespace RestrictedSpeech
 
         public string SentenceStart(string input)
         {
-            if (configuration.CurrentProfile.SentenceStartEnabled)
+            if (configuration.ActiveProfile.SentenceStartEnabled)
             {
-                return configuration.CurrentProfile.SentenceStarts + input;
+                return configuration.ActiveProfile.SentenceStarts + input;
             }
             else
             {
@@ -227,9 +227,9 @@ namespace RestrictedSpeech
         }
         public string SentenceEnding(string input)
         {
-            if (configuration.CurrentProfile.SentenceEndingEnabled)
+            if (configuration.ActiveProfile.SentenceEndingEnabled)
             {
-                return input + configuration.CurrentProfile.SentenceEndings;
+                return input + configuration.ActiveProfile.SentenceEndings;
             }
             else
             {

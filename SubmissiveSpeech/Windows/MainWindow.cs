@@ -1,14 +1,22 @@
 using System;
 using System.Numerics;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
+using System.Linq;
 
 namespace SubmissiveSpeech.Windows;
 
 public class MainWindow : Window, IDisposable
 {
+    private enum WhichMenu
+    {
+        Main, Profile
+    }
     private Plugin plugin;
-    private ProfileEditor profileEditor;
+    private ProfileEditor profileEditor = new ProfileEditor();
+    private WhichMenu menu = WhichMenu.Main;
+    private string[] profiles;
 
     // We give this window a hidden ID using ##
     // So that the user will see "My Amazing Window" as window title,
@@ -23,7 +31,8 @@ public class MainWindow : Window, IDisposable
         };
 
         this.plugin = plugin;
-        profileEditor = new ProfileEditor(plugin.Configuration.CurrentProfile);
+        profiles = plugin.Configuration.Profiles.Select(selector => selector.Label).ToArray();
+        Plugin.Log.Debug($"profiles:{profiles.Length}");
     }
 
     public void Dispose() { }
@@ -35,7 +44,22 @@ public class MainWindow : Window, IDisposable
         // provide through our bindings, leading to a Crash to Desktop.
         // Replacements can be found in the ImGuiHelpers Class
         // ImGui.TextUnformatted($"The random config bool is {plugin.Configuration.SomePropertyToBeSavedAndWithADefault}");
-        profileEditor.Draw();
+        using (ImRaii.TabBar("Profile Settings##main"))
+        {
+            if (ImGui.BeginTabItem("Main Settings##mainsettings"))
+            {
+                drawMain();
+                ImGui.EndTabItem();
+            }
+            if (ImGui.BeginTabItem("Edit Active Profile##profileEdit"))
+            {
+                if (profileEditor.Draw(plugin.Configuration.ActiveProfile))
+                {
+                    plugin.Configuration.Save();
+                }
+                ImGui.EndTabItem();
+            }
+        }
         // if (ImGui.Button("Show Settings"))
         // {
         //     plugin.ToggleConfigUI();
@@ -85,5 +109,46 @@ public class MainWindow : Window, IDisposable
         //         }
         //     }
         // }
+    }
+    private void drawMain()
+    {
+        int current = plugin.Configuration.ActiveProfileIndex;
+        // Maybe write out some welcome text.
+        ImGui.TextWrapped("""
+                Hello there cutie, if you have this installed, you are likely the most 
+                adorable subbie that needs a little bit of help to be the best subbie you can be.
+                To get started, select one of the prebuilt profiles below.
+                If you want some customization, you can duplicate a profile and then edit it in the tab above.
+
+                Many apologies for the messy UI. This will hopefully be temporary <3
+
+                - Miss Nia
+                """);
+        // create new profile
+        if (ImGui.Button("New Blank Profile"))
+        {
+            var newpf = new Profile();
+            newpf.Label = "New Profile";
+            plugin.Configuration.Profiles.Add(newpf);
+            profiles = plugin.Configuration.Profiles.Select(selector => selector.Label).ToArray();
+            plugin.Configuration.Save();
+        }
+        // duplicate current profile
+        // profile selector
+        var label = current >= 0 ? profiles[current] : "Select a profile";
+        if (ImGui.BeginCombo("Profile##selector", label))
+        {
+            for (int i = 0; i < profiles.Length; i++)
+            {
+                if (ImGui.Selectable(profiles[i], i == current))
+                {
+                    var id = plugin.Configuration.Profiles[i].Id;
+                    plugin.Configuration.SetActiveProfile(id);
+                    current = plugin.Configuration.ActiveProfileIndex;
+                    plugin.Configuration.Save();
+                }
+            }
+            ImGui.EndCombo();
+        }
     }
 }

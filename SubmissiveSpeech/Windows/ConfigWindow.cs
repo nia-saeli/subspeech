@@ -20,11 +20,11 @@ public class ConfigWindow : Window, IDisposable
 
     private void GetLastConfig()
     {
-        previewStutterEnabled = configuration.CurrentProfile.StutterEnabled;
-        previewStutterChance = configuration.CurrentProfile.StutterChance;
-        previewStutterSeverity = configuration.CurrentProfile.MaxStutterSeverity;
+        previewStutterEnabled = configuration.ActiveProfile.StutterEnabled;
+        previewStutterChance = configuration.ActiveProfile.StutterChance;
+        previewStutterSeverity = configuration.ActiveProfile.MaxStutterSeverity;
 
-        previewForcedPronounEnabled = configuration.CurrentProfile.PronounCorrectionEnabled;
+        previewForcedPronounEnabled = configuration.ActiveProfile.PronounCorrectionEnabled;
     }
 
     // We give this window a constant ID using ###
