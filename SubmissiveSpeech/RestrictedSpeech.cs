@@ -60,6 +60,7 @@ namespace RestrictedSpeech
                     output.Append(' ');
                     continue;
                 }
+
                 (string prefix, string word, string postfix) = handlePunctuation(full_word);
                 string processed_postfix = "";
                 if (prefix != "")
@@ -68,6 +69,7 @@ namespace RestrictedSpeech
                         to_replace = false;
                     output.Append(prefix);
                 }
+
                 if (to_replace)
                 {
                     output.Append(ProcessWord(rand, word, i, words.Count, ref ticks, ref processed_postfix));
@@ -76,6 +78,7 @@ namespace RestrictedSpeech
                 {
                     output.Append(word);
                 }
+
                 if (postfix != "")
                 {
                     if (postfix.Contains('*'))
@@ -86,13 +89,16 @@ namespace RestrictedSpeech
                 {
                     output.Append(processed_postfix);
                 }
+
                 output.Append(' ');
             }
+
             var final = output.ToString();
             if (configuration.ActiveProfile.SentenceStartEnabled)
             {
                 final = SentenceStart(final);
             }
+
             if (configuration.ActiveProfile.SentenceEndingEnabled)
             {
                 final = SentenceEnding(final);
@@ -120,10 +126,11 @@ namespace RestrictedSpeech
         }
 
         // Takes the word and processes it based on the specific words
-        public string ProcessWord(Random rand, string word, int word_index, int total_words, ref int ticks, ref string postfix_punctuation)
+        private string ProcessWord(Random rand, string word, int word_index, int total_words, ref int ticks, ref string postfix_punctuation)
         {
             // By default it will be empty
             postfix_punctuation = "";
+
             // Forced speech trumps all other speech and returns immediately, no further processing required.
             if (configuration.ActiveProfile.CompelledSpeechEnabled)
             {
@@ -131,6 +138,7 @@ namespace RestrictedSpeech
                 int index = rand.Next(configuration.ActiveProfile.CompelledSpeechWords.Count);
                 return configuration.ActiveProfile.CompelledSpeechWords[index];
             }
+
             // If this is found in a pronouns list, change it.
             if (configuration.ActiveProfile.PronounCorrectionEnabled)
             {
@@ -141,6 +149,7 @@ namespace RestrictedSpeech
                     word = configuration.ActiveProfile.PronounsReplacements[key];
                 }
             }
+
             // Roll for stuttering. TODO: Make configurable.
             if (configuration.ActiveProfile.StutterEnabled && rand.Next(100) < configuration.ActiveProfile.StutterChance)
             {
@@ -155,10 +164,11 @@ namespace RestrictedSpeech
                 rand.Next(configuration.ActiveProfile.MaxStutterSeverity);
                 word = stutter + word;
             }
+
             // Finally if there is an utterance required, add it.
             // The number of ticks here is to respect the maximum portion of a sentence
             // (to prevent RNG from making people have a spasm of utterances unless they want to.)
-            if (configuration.ActiveProfile.TicksEnabled && ticks > 0)
+            if (configuration.ActiveProfile.TicksEnabled && word_index <= total_words && ticks > 0)
             {
                 Log.Debug($"Process {word} verbal ticks");
 
@@ -169,6 +179,7 @@ namespace RestrictedSpeech
                 // Note: For simplicity, the roll calculation is measuring less than for the chance .
                 var bias = total_words / (1 + word_index);
                 var roll = rand.NextDouble() * bias;
+
                 if (configuration.ActiveProfile.Ticks.Count == 0)
                 {
                     Log.Debug($"No verbal ticks found, this should not be possible to set, so there is an error in your configuration.CurrentProfile.");
@@ -182,10 +193,11 @@ namespace RestrictedSpeech
                     postfix_punctuation = ",";
                 }
             }
+
             return word;
         }
 
-        public string Pronouns(string input)
+        private string Pronouns(string input)
         {
             StringBuilder output = new StringBuilder();
 
@@ -197,8 +209,8 @@ namespace RestrictedSpeech
                     continue;
                 }
                 (string pre, string word, string post) = handlePunctuation(full_word);
-
                 output.Append(pre);
+
                 if (configuration.ActiveProfile.PronounsReplacements.ContainsKey(word))
                 {
                     output.Append(configuration.ActiveProfile.PronounsReplacements[word]);
@@ -214,7 +226,7 @@ namespace RestrictedSpeech
             return output.ToString().TrimEnd();
         }
 
-        public string SentenceStart(string input)
+        private string SentenceStart(string input)
         {
             if (configuration.ActiveProfile.SentenceStartEnabled)
             {
@@ -225,7 +237,8 @@ namespace RestrictedSpeech
                 return input;
             }
         }
-        public string SentenceEnding(string input)
+
+        private string SentenceEnding(string input)
         {
             if (configuration.ActiveProfile.SentenceEndingEnabled)
             {
@@ -235,6 +248,21 @@ namespace RestrictedSpeech
             {
                 return input;
             }
+        }
+
+        private string smallify(string input)
+        {
+            input.Replace("!", "...");
+            input.Replace("?", "...?");
+            input.Replace(".", "...");
+            return input.ToLower();
+        }
+
+        private string bimboify(string input)
+        {
+            // To bimboify speech as per: https://github.com/Gardamuse/mispell/blob/master/src/bimbofy.js
+            // it may be a bit of a longer term project, so this is strictly a "TODO" function.
+            return input;
         }
     }
 }

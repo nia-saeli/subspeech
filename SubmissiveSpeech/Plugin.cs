@@ -216,7 +216,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnCommand(string command, string args)
     {
-        ConfigWindow.Toggle();
+        MainWindow.Toggle();
     }
 
     private void DrawUI() => WindowSystem.Draw();

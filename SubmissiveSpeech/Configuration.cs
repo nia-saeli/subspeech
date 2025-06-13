@@ -104,10 +104,6 @@ public class Configuration : IPluginConfiguration
                 Ticks = new List<string>() {
                     "woof", "bark"
                 },
-
-                SentenceStarts = "",
-                SentenceEndings = "",
-
                 PronounsReplacements = new Dictionary<string, string>() {
                     { "i", "puppy" },
                     { "me", "puppy" },
@@ -127,7 +123,28 @@ public class Configuration : IPluginConfiguration
                 StutterChance = 10,
                 MaxStutterSeverity = 2,
                 MaxStuttersPerSentence = 3,
-            }
+            },
+
+            new Profile {
+                Label = "Bimbo",
+                Readonly = true,
+                TicksEnabled = true,
+                Ticks = new List<string>() {
+                    "umm", "yah", "ya-know", "like", "lolz", "lyk", "totally", "omg",
+                    "O-M-G", "ferreal", "ummmm", "like-stuff", "*giggles*"
+                },
+                SentenceEndings = "♥",
+                TickChance = 0.3f,
+                TickMaxPortionOfSpeech = 0.2f,
+            },
+            new Profile {
+                Label = "Budget Gagspeak",
+                Readonly = true,
+                CompelledSpeechEnabled = true,
+                CompelledSpeechWords = new List<string>() {
+                    "Mmmph!", "Mrrph!!", "Mmrph!", "Mmmmmm"
+                }
+            },
         };
         return profiles;
     }
@@ -143,6 +160,7 @@ public class Configuration : IPluginConfiguration
             Plugin.Log.Debug($"Found and setting {this.ActiveProfileId} as ActiveProfileId");
         }
     }
+
     public Configuration()
     {
         if (this.Profiles.Count > 0)
@@ -190,6 +208,7 @@ class ProfileEditor
     private string addPronounKey = "";
     private string addPronounValue = "";
     private string addTick = "";
+    private string addCompelledWord = "";
     /// Returns if save has been pressed.
     public bool Draw(Profile profile)
     {
@@ -212,6 +231,7 @@ class ProfileEditor
         }
         return false;
     }
+
     private void InputText(string label, string input, uint length, Action<string> setter)
     {
         var tmp = input;
@@ -221,6 +241,7 @@ class ProfileEditor
         }
 
     }
+
     private void InputInt(string label, int current, Action<int> setter)
     {
         var tmp = current;
@@ -229,6 +250,7 @@ class ProfileEditor
             setter(tmp);
         }
     }
+
     private void Checkbox(string label, bool current, Action<bool> setter)
     {
         var tmp = current;
@@ -309,6 +331,7 @@ class ProfileEditor
             ImGui.InputText($"##{name}inputvalue", ref placeholderValue, 20);
         }
     }
+
     private void DrawTogglesRows(Profile profile)
     {
         if (ImGui.CollapsingHeader($"Feature Toggles##{profile.Id}feature_toggles"))
@@ -360,6 +383,7 @@ class ProfileEditor
             InputText("SentenceStarts", profile.SentenceStarts, 120, v => profile.SentenceStarts = v);
             InputText("SentenceEndings", profile.SentenceEndings, 120, v => profile.SentenceEndings = v);
             this.DrawDictionaryWidget("pronouns", profile.PronounsReplacements, ref addPronounKey, ref addPronounValue);
+            this.DrawWordListWidget("compelled words", profile.CompelledSpeechWords, ref addCompelledWord);
             ImGui.EndDisabled();
         }
     }
