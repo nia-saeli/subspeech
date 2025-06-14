@@ -338,11 +338,12 @@ class ProfileEditor
         {
             ImGui.BeginDisabled(profile.Readonly);
             Checkbox("Compelled Speech Enabled", profile.CompelledSpeechEnabled, v => profile.CompelledSpeechEnabled = v);
-            Checkbox("TicksEnabled", profile.TicksEnabled, v => profile.TicksEnabled = v);
-            Checkbox("PronounCorrectionEnabled", profile.PronounCorrectionEnabled, v => profile.PronounCorrectionEnabled = v);
-            Checkbox("StutterEnabled", profile.StutterEnabled, v => profile.StutterEnabled = v);
-            Checkbox("SentenceStartEnabled", profile.SentenceStartEnabled, v => profile.SentenceStartEnabled = v);
-            Checkbox("SentenceEndingEnabled", profile.SentenceEndingEnabled, v => profile.SentenceEndingEnabled = v);
+            Checkbox("Ticks Enabled", profile.TicksEnabled, v => profile.TicksEnabled = v);
+            Checkbox("Pronoun Correction Enabled", profile.PronounCorrectionEnabled, v => profile.PronounCorrectionEnabled = v);
+            Checkbox("Stutter Enabled", profile.StutterEnabled, v => profile.StutterEnabled = v);
+            Checkbox("Little Voice", profile.LowercaseEnforcement, v => profile.LowercaseEnforcement = v);
+            Checkbox("Sentence Start Enabled", profile.SentenceStartEnabled, v => profile.SentenceStartEnabled = v);
+            Checkbox("Sentence Ending Enabled", profile.SentenceEndingEnabled, v => profile.SentenceEndingEnabled = v);
             ImGui.EndDisabled();
         }
     }

@@ -11,16 +11,16 @@
             "chat-modification"
         ],
         "InternalName": "SubmissiveSpeech",
-        "AssemblyVersion": "0.0.1.0",
-        "TestingAssemblyVersion": "0.0.1.0",
+        "AssemblyVersion": "0.0.1.1",
+        "TestingAssemblyVersion": "0.0.1.1",
         "RepoUrl": "https://github.com/nia-saeli/subspeech",
         "DalamudApiLevel": 12,
         "LoadPriority": 0,
         "IsHide": false,
         "IsTestingExclusive": false,
-        "DownloadLinkInstall": "https://github.com/nia-saeli/subspeech/releases/download/0.0.1.0/Release.zip",
-        "DownloadLinkTesting": "https://github.com/nia-saeli/subspeech/releases/download/0.0.1.0/Release.zip",
-        "DownloadLinkUpdate": "https://github.com/nia-saeli/subspeech/releases/download/0.0.1.0/Release.zip",
+        "DownloadLinkInstall": "https://github.com/nia-saeli/subspeech/releases/download/0.0.1.1/Release.zip",
+        "DownloadLinkTesting": "https://github.com/nia-saeli/subspeech/releases/download/0.0.1.1/Release.zip",
+        "DownloadLinkUpdate": "https://github.com/nia-saeli/subspeech/releases/download/0.0.1.1/Release.zip",
         "LastUpdate": "1748940960"
     }
 ]

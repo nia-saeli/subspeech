@@ -11,7 +11,7 @@ namespace RestrictedSpeech
     public class SubmissiveSpeech
     {
         const string SENTENCE_REGEX = @"([^.]*[^.]*[\.\?\!])([^.]*[^.]*)$";
-        const string WORD_REGEX = @"([^a-zA-Z0-9]*)([a-zA-Z0-9\-\']*)([^a-zA-Z0-9]*)";
+        const string WORD_REGEX = @"^(\W*)([\w\W\-\']*?)(\W*)$";
         // This emoji should support the following basic text emojis
         const string EMOJI_REGEX = @"^[:;cDxX><\-\,)CP][:;><\-3)CWwdpP]*[:;cDxX><\-\,3)CWwdpP]$";
 
@@ -122,6 +122,13 @@ namespace RestrictedSpeech
             var prefix = captures[1].ToString();
             var word = captures[2].ToString();
             var postfix = captures[3].ToString();
+
+            prefix = prefix.Replace(".", "...");
+            prefix = prefix.Replace("!", "...");
+            prefix = prefix.Replace("?", "...?");
+            postfix = postfix.Replace(".", "...");
+            postfix = postfix.Replace("!", "...");
+            postfix = postfix.Replace("?", "...?");
             return (prefix, word, postfix);
         }
 
@@ -130,6 +137,11 @@ namespace RestrictedSpeech
         {
             // By default it will be empty
             postfix_punctuation = "";
+            if (configuration.ActiveProfile.LowercaseEnforcement)
+            {
+                word = smallify(word);
+            }
+
 
             // Forced speech trumps all other speech and returns immediately, no further processing required.
             if (configuration.ActiveProfile.CompelledSpeechEnabled)
@@ -173,9 +185,9 @@ namespace RestrictedSpeech
                 Log.Debug($"Process {word} verbal ticks");
 
                 // Simple bias to try to ensure that you are twice as likely to have something occur near the end as the beginning
-                // 2f * 1 / 10 = much lower chance to roll sufficiently
-                // 2f * 5 / 10 = 1f (no mod to roll)
-                // 2f * 10 / 10 = almost double the roll bias.
+                // 1 / 10 = much lower chance to roll sufficiently
+                // 5 / 10 = 1f (no mod to roll)
+                // 10 / 10 = almost double the roll bias.
                 // Note: For simplicity, the roll calculation is measuring less than for the chance .
                 var bias = total_words / (1 + word_index);
                 var roll = rand.NextDouble() * bias;
@@ -252,9 +264,6 @@ namespace RestrictedSpeech
 
         private string smallify(string input)
         {
-            input.Replace("!", "...");
-            input.Replace("?", "...?");
-            input.Replace(".", "...");
             return input.ToLower();
         }
 
